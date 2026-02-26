@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lampung Sewa POS - Pro System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root { 
+            --primary: #2c3e50; --accent: #e74c3c; --success: #27ae60; 
+            --warning: #f1c40f; --danger: #e74c3c; --bg: #f8f9fa; --white: #ffffff;
+            --whatsapp: #25D366;
+            --soft-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+        
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: var(--primary); overflow-x: hidden; }
+
+        /* --- LOGIN PAGE --- */
+        #login-page { position: fixed; inset: 0; z-index: 5000; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-card { background: var(--white); padding: 40px 24px; border-radius: 30px; width: 100%; max-width: 360px; text-align: center; box-shadow: var(--soft-shadow); }
+        .logo-img { width: 120px; height: 120px; object-fit: contain; margin-bottom: 20px; }
+        .login-card input { width: 100%; padding: 18px; border: 1.5px solid #eee; border-radius: 16px; font-size: 1.2em; text-align: center; outline: none; margin-bottom: 20px; box-sizing: border-box; }
+        .btn-login { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 16px; font-weight: 700; cursor: pointer; }
+
+        /* --- APP STRUCTURE --- */
+        #main-app { display: none; padding-top: 70px; padding-bottom: 110px; }
+        .app-header { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: var(--white); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000; background: var(--white); display: flex; border-top: 1px solid #eee; padding: 12px 0; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+        .nav-item { flex: 1; text-align: center; color: #b0b0b0; font-size: 11px; cursor: pointer; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+        .nav-item i { display: block; font-size: 20px; margin-bottom: 2px; font-style: normal; }
+
+        /* --- CONTENT --- */
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .category-scroll { display: flex; gap: 10px; padding: 10px 15px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+        .cat-btn { padding: 8px 20px; border-radius: 20px; border: 1px solid #ddd; background: white; font-size: 12px; font-weight: bold; color: #777; }
+        .cat-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 0 15px; }
+        .card { background: var(--white); border-radius: 20px; padding: 15px; box-shadow: var(--soft-shadow); position: relative; text-align: center; cursor: pointer;}
+        .price { color: var(--accent); font-weight: bold; font-size: 11px; margin-top: 5px; }
+
+        /* --- BADGES --- */
+        .badge { font-size: 9px; padding: 2px 8px; border-radius: 10px; color: white; font-weight: bold; text-transform: uppercase; }
+        .bg-success { background: var(--success); }
+        .bg-warning { background: var(--warning); color: #333; }
+
+        /* --- MODALS --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-card { background: white; padding: 25px; border-radius: 25px; width: 100%; max-width: 320px; text-align: center; }
+        .btn-pay { width: 100%; padding: 15px; margin: 8px 0; border: 2px solid #eee; border-radius: 15px; background: white; font-weight: bold; cursor: pointer;}
+        
+        .cart-bar { position: fixed; bottom: 85px; left: 15px; right: 15px; background: var(--primary); color: white; padding: 15px 20px; border-radius: 18px; display: none; justify-content: space-between; align-items: center; z-index: 900; }
+        .btn-wa { width: 100%; padding: 15px; background: var(--whatsapp); color: white; border: none; border-radius: 18px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+
+        /* Invoice styles */
+        .invoice-box { background: white; padding: 25px; border-radius: 10px; color: #333; text-align: left; }
+        .invoice-header { text-align: center; border-bottom: 2px dashed #eee; padding-bottom: 10px; margin-bottom: 15px; }
+        .payment-info { background: #f9f9f9; padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 11px; border-left: 4px solid var(--primary); line-height: 1.6; }
+        .stamp-area { margin-top: 20px; text-align: right; position: relative; height: 90px; }
+        .stamp-img { width: 90px; position: absolute; right: 0; bottom: 10px; opacity: 1; z-index: 2; }
+    </style>
+</head>
+<body>
+
+    <div id="login-page">
+        <div class="login-card">
+            <img src="https://files.oaiusercontent.com/file-2m9X6i9p7X6nJ3k9K9X6nJ3k" class="logo-img">
+            <h2>LAMPUNG SEWA</h2>
+            <input type="password" id="pin-input" maxlength="4" inputmode="numeric" placeholder="PIN KASIR">
+            <button class="btn-login" onclick="validateLogin()">Masuk Sistem</button>
+        </div>
+    </div>
+
+    <div id="main-app">
+        <header class="app-header">
+            <div style="font-weight:900">LAMPUNG SEWA</div>
+            <div id="header-rev" style="color:var(--success); font-weight:bold;">Rp 0</div>
+        </header>
+
+        <div id="sec-pos" class="content-section active">
+            <div class="category-scroll">
+                <button class="cat-btn active" onclick="filterCat('Motor', this)">🛵 Motor</button>
+                <button class="cat-btn" onclick="filterCat('Laptop', this)">💻 Laptop</button>
+                <button class="cat-btn" onclick="filterCat('Proyektor', this)">📹 Proyektor</button>
+            </div>
+            <div class="menu-grid" id="menu-display"></div>
+        </div>
+
+        <div id="sec-booking" class="content-section">
+            <div style="padding:15px">
+                <h3 style="margin-top:0">Daftar Booking (Belum Lunas)</h3>
+                <div id="booking-list"></div>
+            </div>
+        </div>
+
+        <div id="sec-report" class="content-section">
+            <div style="padding:15px">
+                <input type="date" id="rep-date" onchange="renderReport()" style="width:100%; padding:12px; border-radius:12px; border:1px solid #ddd; box-sizing:border-box;">
+                <div id="report-list" style="margin-top:20px;"></div>
+                <div style="margin-top:20px; background:white; padding:15px; border-radius:15px; box-shadow:var(--soft-shadow);">
+                    <div style="display:flex; justify-content:space-between; font-size:13px;"><span>Total Cash:</span> <span id="val-cash">Rp 0</span></div>
+                    <div style="display:flex; justify-content:space-between; font-size:13px;"><span>Total Transfer:</span> <span id="val-transfer">Rp 0</span></div>
+                    <hr>
+                    <div style="display:flex; justify-content:space-between; font-weight:bold; color:var(--primary);"><span>OMSET LUNAS:</span> <span id="report-total-val">Rp 0</span></div>
+                </div>
+                <button class="btn-wa" onclick="sendReportWhatsApp()">💬 Kirim Laporan ke WA</button>
+                <button onclick="logout()" style="width:100%; margin-top:30px; color:var(--danger); border:none; background:none; font-size:11px;">Logout Sistem</button>
+            </div>
+        </div>
+
+        <div id="pay-modal" class="modal-overlay">
+            <div class="modal-card">
+                <h3>Pilih Status Pesanan</h3>
+                <p id="pay-total-text" style="font-weight:bold; color:var(--accent);"></p>
+                <button class="btn-pay" style="border-color: var(--warning);" onclick="processPayment('Transfer', 'Booking')">📅 Booking (DP/Belum Lunas)</button>
+                <button class="btn-pay" style="border-color: var(--success);" onclick="processPayment('Cash', 'Lunas')">💵 Lunas (Cash)</button>
+                <button class="btn-pay" style="border-color: var(--success);" onclick="processPayment('Transfer', 'Lunas')">📱 Lunas (Transfer)</button>
+                <button onclick="closeModal('pay-modal')" style="background:none; border:none; color:#999; margin-top:10px;">Batal</button>
+            </div>
+        </div>
+
+        <div id="inv-modal" class="modal-overlay" style="flex-direction: column; overflow-y: auto;">
+            <div class="invoice-box" id="nota-area" style="width: 100%; max-width: 320px; margin-bottom: 20px;">
+                <div class="invoice-header">
+                    <img src="https://files.oaiusercontent.com/file-2m9X6i9p7X6nJ3k9K9X6nJ3k" style="width:70px">
+                    <h3 style="margin:5px 0; letter-spacing:1px;">INVOICE SEWA</h3>
+                    <small id="inv-date"></small><br>
+                    <span id="inv-status-badge"></span>
+                </div>
+                <div id="inv-items-list"></div>
+                <div style="border-top:1px solid #eee; margin-top:10px; padding-top:10px; font-weight:bold; display:flex; justify-content:space-between; font-size:1.1em;">
+                    <span>TOTAL</span> <span id="inv-total-val"></span>
+                </div>
+                <div class="payment-info">
+                    <strong>PEMBAYARAN VIA TRANSFER:</strong><br>
+                    • <b>BCA: 0231890369</b><br>&nbsp;&nbsp;An. Sigit Sudrajat<br>
+                    • <b>BRI: 009801004854561</b><br>&nbsp;&nbsp;An. PT. Lampung Sewa Plus
+                </div>
+                <div class="stamp-area">
+                    <p style="font-size:10px; margin:0; position:relative; z-index:3;">Hormat Kami,</p>
+                    <img src="https://files.oaiusercontent.com/file-mXitgQd8jU6eL9fN8jU6eL9f" class="stamp-img">
+                    <p style="font-size:11px; font-weight:bold; margin-top:50px; position:relative; z-index:3;">Lampung Sewa Official</p>
+                </div>
+            </div>
+            <button class="btn-wa" onclick="downloadPDF()">📄 Kirim Nota (PDF)</button>
+            <button onclick="closeModal('inv-modal')" style="color:white; background:none; border:none; margin-top:10px;">Tutup</button>
+        </div>
+
+        <div class="cart-bar" id="cart-float" onclick="openPayment()">
+            <div><span id="cart-count">0</span> Unit | <strong id="cart-total">Rp 0</strong></div>
+            <div>PROSES &rsaquo;</div>
+        </div>
+
+        <nav class="bottom-nav">
+            <div class="nav-item active" id="nav-pos" onclick="switchTab('pos')"><i>📋</i>Sewa</div>
+            <div class="nav-item" id="nav-booking" onclick="switchTab('booking')"><i>📅</i>Booking</div>
+            <div class="nav-item" id="nav-report" onclick="switchTab('report')"><i>📊</i>Laporan</div>
+        </nav>
+    </div>
+
+<script>
+    const PIN_KASIR = "0312";
+    let currentCat = "Motor";
+    const promoDB = {
+        "Motor": { "Beat karbu": 400000, "mio m3": 450000, "beat pop": 450000, "suzuki nex2": 450000, "scoopy 2017": 450000, "beat sporty gen 3": 500000, "beat sporty new": 550000, "Beat deluxe": 560000, "Scoopy 2020": 600000, "Vario 125": 600000, "Vario 150": 700000 },
+        "Laptop": { "100000": 400000, "80000": 350000 }
+    };
+    let items = JSON.parse(localStorage.getItem('ls_items')) || [
+        {name: "Beat karbu", price: 70000, cat: "Motor", icon: "🛵"},
+        {name: "Vario 150", price: 120000, cat: "Motor", icon: "🛵"},
+        {name: "Laptop Bisnis", price: 100000, cat: "Laptop", icon: "💻"}
+    ];
+    let sales = JSON.parse(localStorage.getItem('ls_sales')) || [];
+    let cart = [];
+
+    function validateLogin() {
+        if(document.getElementById('pin-input').value === PIN_KASIR) {
+            sessionStorage.setItem('ls_auth', 'true');
+            startApp();
+        } else { alert("PIN Salah!"); }
+    }
+
+    function startApp() {
+        document.getElementById('login-page').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        document.getElementById('rep-date').value = new Date().toISOString().split('T')[0];
+        renderMenu(); renderReport(); renderBooking();
+    }
+
+    function renderMenu() {
+        const filtered = items.filter(i => i.cat === currentCat);
+        document.getElementById('menu-display').innerHTML = filtered.map(item => `
+            <div class="card" onclick="addToCart(${items.indexOf(item)})">
+                <div style="font-size:30px">${item.icon}</div>
+                <div style="font-weight:bold; font-size:12px; margin-top:5px;">${item.name}</div>
+                <div class="price">Rp ${item.price.toLocaleString()} /hr</div>
+            </div>`).join('');
+    }
+
+    function addToCart(idx) {
+        const item = items[idx];
+        const days = prompt(`Berapa hari sewa ${item.name}?`, "1");
+        if (days > 0) {
+            const weeks = Math.floor(days / 7);
+            const extra = days % 7;
+            let weekRate = (item.cat === "Motor" ? (promoDB.Motor[item.name] || item.price * 7) : (promoDB.Laptop[item.price] || item.price * 7));
+            const total = (weeks * weekRate) + (extra * item.price);
+            cart.push({ ...item, days, weeks, extra, total });
+            updateCart();
+        }
+    }
+
+    function updateCart() {
+        const total = cart.reduce((a, b) => a + b.total, 0);
+        document.getElementById('cart-float').style.display = cart.length > 0 ? 'flex' : 'none';
+        document.getElementById('cart-count').innerText = cart.length;
+        document.getElementById('cart-total').innerText = `Rp ${total.toLocaleString()}`;
+    }
+
+    function openPayment() {
+        const total = cart.reduce((a, b) => a + b.total, 0);
+        document.getElementById('pay-total-text').innerText = "Total: Rp " + total.toLocaleString();
+        document.getElementById('pay-modal').style.display = 'flex';
+    }
+
+    function processPayment(method, status) {
+        const date = new Date().toISOString().split('T')[0];
+        const time = new Date().toLocaleString('id-ID');
+        
+        cart.forEach(c => sales.push({ 
+            date, time, name: c.name, days: c.days, price: c.total, method, status 
+        }));
+        localStorage.setItem('ls_sales', JSON.stringify(sales));
+        
+        // Setup Invoice
+        document.getElementById('inv-date').innerText = time;
+        document.getElementById('inv-status-badge').innerHTML = `<span class="badge ${status === 'Lunas' ? 'bg-success' : 'bg-warning'}">${status}</span>`;
+        document.getElementById('inv-items-list').innerHTML = cart.map(c => `
+            <div style="margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; font-size:13px;"><strong>${c.name}</strong> <span>Rp ${c.total.toLocaleString()}</span></div>
+                <div style="font-size:11px; color:#666;">Durasi: ${c.days} Hari</div>
+            </div>`).join('');
+        document.getElementById('inv-total-val').innerText = "Rp " + cart.reduce((a,b)=>a+b.total,0).toLocaleString();
+        
+        document.getElementById('pay-modal').style.display = 'none';
+        document.getElementById('inv-modal').style.display = 'flex';
+    }
+
+    async function downloadPDF() {
+        const { jsPDF } = window.jspdf;
+        const nota = document.getElementById('nota-area');
+        html2canvas(nota, { scale: 3, useCORS: true }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', [80, 150]);
+            pdf.addImage(imgData, 'PNG', 0, 0, 80, (canvas.height * 80) / canvas.width);
+            pdf.save(`LS_Invoice_${Date.now()}.pdf`);
+            
+            let total = document.getElementById('inv-total-val').innerText;
+            window.open(`https://wa.me/?text=${encodeURIComponent("*INVOICE LAMPUNG SEWA*\n*Total:* " + total + "\n\n_Nota PDF sedang diunduh._")}`);
+            
+            cart = []; updateCart(); renderReport(); renderBooking();
+            document.getElementById('inv-modal').style.display = 'none';
+        });
+    }
+
+    function renderReport() {
+        const dateInput = document.getElementById('rep-date').value;
+        const filtered = sales.filter(s => s.date === dateInput && s.status === 'Lunas');
+        const cash = filtered.filter(s => s.method === 'Cash').reduce((a,b)=>a+b.price,0);
+        const tf = filtered.filter(s => s.method === 'Transfer').reduce((a,b)=>a+b.price,0);
+        
+        document.getElementById('report-list').innerHTML = filtered.map((s, index) => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #eee; font-size:13px;">
+                <div style="flex:1;">
+                    <span>${s.name} (${s.days} Hr) - <b>${s.method}</b></span><br>
+                    <strong>Rp ${s.price.toLocaleString()}</strong>
+                </div>
+                <button onclick="deleteSale(${index})" style="color:var(--danger); border:none; background:none; font-size:18px; padding:10px;">×</button>
+            </div>`).join('') || '<p style="text-align:center; color:#ccc">Tidak ada transaksi lunas</p>';
+        
+        document.getElementById('val-cash').innerText = `Rp ${cash.toLocaleString()}`;
+        document.getElementById('val-transfer').innerText = `Rp ${tf.toLocaleString()}`;
+        document.getElementById('report-total-val').innerText = `Rp ${(cash+tf).toLocaleString()}`;
+        document.getElementById('header-rev').innerText = `Rp ${(cash+tf).toLocaleString()}`;
+    }
+
+    function renderBooking() {
+        const bookings = sales.filter(s => s.status === 'Booking');
+        document.getElementById('booking-list').innerHTML = bookings.map((s, index) => `
+            <div style="background:white; padding:15px; border-radius:15px; margin-bottom:10px; box-shadow:var(--soft-shadow);">
+                <div style="display:flex; justify-content:space-between; align-items:start;">
+                    <div>
+                        <span class="badge bg-warning">Booking</span>
+                        <div style="font-weight:bold; margin-top:5px;">${s.name} (${s.days} Hari)</div>
+                        <div style="font-size:11px; color:#999;">${s.time}</div>
+                        <div style="color:var(--accent); font-weight:bold; margin-top:5px;">Rp ${s.price.toLocaleString()}</div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:5px;">
+                        <button onclick="completeBooking(${sales.indexOf(s)})" style="background:var(--success); color:white; border:none; padding:8px 12px; border-radius:10px; font-size:10px; font-weight:bold;">LUNASKAN</button>
+                        <button onclick="deleteSaleById(${sales.indexOf(s)})" style="background:none; border:none; color:var(--danger); font-size:10px;">Hapus</button>
+                    </div>
+                </div>
+            </div>`).join('') || '<p style="text-align:center; color:#ccc">Tidak ada daftar booking</p>';
+    }
+
+    function completeBooking(index) {
+        if(confirm("Ubah status menjadi LUNAS?")) {
+            const method = prompt("Metode Pelunasan (Cash/Transfer)?", "Cash");
+            sales[index].status = 'Lunas';
+            sales[index].method = method || 'Cash';
+            localStorage.setItem('ls_sales', JSON.stringify(sales));
+            renderBooking(); renderReport();
+            alert("Berhasil dilunaskan!");
+        }
+    }
+
+    function deleteSaleById(index) {
+        if(confirm("Hapus data ini?")) {
+            sales.splice(index, 1);
+            localStorage.setItem('ls_sales', JSON.stringify(sales));
+            renderBooking(); renderReport();
+        }
+    }
+
+    function deleteSale(indexOnPage) {
+        const dateInput = document.getElementById('rep-date').value;
+        const filteredOnDate = sales.filter(s => s.date === dateInput && s.status === 'Lunas');
+        const itemToDelete = filteredOnDate[indexOnPage];
+        if(confirm(`Hapus transaksi ${itemToDelete.name}?`)) {
+            const actualIndex = sales.indexOf(itemToDelete);
+            if (actualIndex > -1) {
+                sales.splice(actualIndex, 1);
+                localStorage.setItem('ls_sales', JSON.stringify(sales));
+                renderReport();
+            }
+        }
+    }
+
+    function sendReportWhatsApp() {
+        const date = document.getElementById('rep-date').value;
+        const filtered = sales.filter(s => s.date === date && s.status === 'Lunas');
+        if(!filtered.length) return alert("Data kosong");
+        let msg = `*LAPORAN HARIAN LAMPUNG SEWA*\nTanggal: ${date}\n\n`;
+        filtered.forEach((s,i) => msg += `${i+1}. ${s.name} (${s.days} hr) [${s.method}] - Rp ${s.price.toLocaleString()}\n`);
+        msg += `\n*TOTAL LUNAS: Rp ${filtered.reduce((a,b)=>a+b.price,0).toLocaleString()}*`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.content-section, .nav-item').forEach(el => el.classList.remove('active'));
+        document.getElementById('sec-' + tab).classList.add('active');
+        document.getElementById('nav-' + tab).classList.add('active');
+        if(tab === 'report') renderReport();
+        if(tab === 'booking') renderBooking();
+    }
+    
+    function filterCat(c, btn) { 
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentCat = c; renderMenu(); 
+    }
+    
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function logout() { sessionStorage.clear(); location.reload(); }
+    window.onload = () => { if(sessionStorage.getItem('ls_auth')) startApp(); };
+</script>
+</body>
+</html>
